@@ -1,0 +1,24 @@
+{
+  "name": "iris-guard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Iris Guard v0: a Telegram group bot that flags scam messages for group admins.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "fp": "tsx scripts/false-positives.ts"
+  },
+  "dependencies": {
+    "grammy": "^1.46.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

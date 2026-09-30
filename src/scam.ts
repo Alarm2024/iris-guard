@@ -17,14 +17,13 @@ interface Pattern {
 const PATTERNS: Pattern[] = [
   {
     id: "seed_phrase_request",
+    // A bare mention ("never share your seed phrase") is safety advice, not a request.
+    // The rule needs a request verb next to the seed words.
     test: (text) =>
-      /seed phrase|seedphrase|recovery phrase|secret recovery|mnemonic|12 words|24 words|twelve words|twenty[- ]four words/.test(
+      /(?:ask(?:ed|ing)?|want(?:s|ed)?|give|share|paste|type|enter|photo|send|provide|submit|import|drop|need|what(?:'s| is| are))\b.{0,48}(?:seed|mnemonic|recovery phrase|secret recovery|(?:12|24|twelve|twenty[- ]four)[- ]words?)/.test(
         text,
       ) ||
-      /(?:ask(?:ed|ing)?|want(?:s|ed)?|give|share|paste|type|enter|photo|send).{0,48}(?:seed|mnemonic|recovery phrase)/.test(
-        text,
-      ) ||
-      /(?:seed|mnemonic|recovery phrase).{0,48}(?:ask|want|send|share|photo|dm|chat)/.test(text),
+      /(?:seed|mnemonic|recovery phrase|secret recovery).{0,48}\b(?:ask|want|send|share|photo|dm|chat|below|here|form)\b/.test(text),
     why: "Someone is asking for the wallet's seed phrase or recovery words. Those words are the wallet. A real app, exchange, or support desk never needs them.",
     next_steps: [
       "Do not type, photograph, or send the words.",
@@ -51,7 +50,10 @@ const PATTERNS: Pattern[] = [
   {
     id: "fake_airdrop",
     test: (text) =>
-      /airdrop/.test(text) ||
+      // A bare mention ("the airdrop snapshot was yesterday") is normal chat.
+      // The rule needs a claim, a link, or a push to act next to the word.
+      /airdrop.{0,60}(?:claim|connect|click|link|https?:|www\.|\.xyz|\.app|\.io\b|bit\.ly|is open|now open|ends|receive)/.test(text) ||
+      /(?:claim|connect|click|receive).{0,40}airdrop/.test(text) ||
       /claim (?:your |free )?(?:tokens|nft|sol|airdrop)/.test(text) ||
       /free (?:tokens|nft|mint)/.test(text) ||
       /you(?:'ve| have) been selected/.test(text) ||
@@ -79,7 +81,9 @@ const PATTERNS: Pattern[] = [
   {
     id: "authority_change",
     test: (text) =>
-      /setauthority|set authority|authority change|change (?:the )?authority|transfer authority|new authority|freeze authority/.test(
+      // "freeze authority is disabled" is a normal token check, so a bare
+      // "freeze authority" no longer matches; an action on the authority does.
+      /setauthority|set authority|authority change|change (?:the )?authority|transfer (?:the )?authority|new authority|(?:sign|approve|give|hand|assign|grant).{0,24}(?:freeze |mint |owner )?authority/.test(
         text,
       ),
     why: "An authority change (SetAuthority) hands control of a token account to someone else. That is a theft pattern when you did not intend to rotate authority.",
@@ -104,8 +108,19 @@ const PATTERNS: Pattern[] = [
   },
 ];
 
+/**
+ * Remove safety advice such as "never share", "admins will never DM you", or
+ * "do not send" so warnings posted in a group are not read as the scam itself.
+ */
+export function stripSafetyAdvice(text: string): string {
+  return text.replace(
+    /\b(?:never|don't|dont|do not|won't|will not|no one will|nobody will)\s+(?:ever\s+)?(?:share|send|give|type|enter|ask|paste|post|dm|message|contact|write)\b/g,
+    " ",
+  );
+}
+
 export function checkScam(situation: string): ScamReport {
-  const text = situation.toLowerCase();
+  const text = stripSafetyAdvice(situation.toLowerCase().replace(/\u2019/g, "'"));
   const matched = PATTERNS.filter((pattern) => pattern.test(text));
   if (matched.length === 0) {
     return {
